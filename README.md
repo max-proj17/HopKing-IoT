@@ -24,27 +24,25 @@ Ensure you have [Node.js](https://nodejs.org/en/) installed on your system. This
 2. **Navigate to the Project Directory**
 
 - After cloning, move into the project directory:
-cd HopKing-IoT
-
-Copy code
+```cd HopKing-IoT```
 
 3. **Install Dependencies**
 
 - To ensure a fresh start, delete the existing `package-lock.json` file:
-rm package-lock.json
+```rm package-lock.json```
 
 
 - Then, install the project dependencies:
-npm install
+```npm install```
 
 - This command installs the necessary packages specified in the `package.json` file.
 
 4. **Start the Development Server**
 
 - Start the development server to run the project locally:
-npx vite dev
+```npx vite dev```
 
 - Or, if a script is specified in the `package.json`:
-npm run dev
+```npm run dev```
 
 - This command will start the development server. The terminal output will provide the local URL where the project is running (usually `http://localhost:3000` or similar).
