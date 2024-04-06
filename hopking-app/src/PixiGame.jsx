@@ -1,40 +1,60 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+// PixiGame.jsx
+// PixiGame.jsx
+import React, { useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 
+const PixiGame = () => {
+  const gameContainerRef = useRef(null);
 
-import { BlurFilter, TextStyle, Application } from 'pixi.js';
-import { Stage, Container, Sprite, Text } from '@pixi/react';
+  useEffect(() => {
+    const app = new PIXI.Application({
+      width: 800,
+      height: 600,
+      backgroundColor: 0x000000, // Black background
+    });
 
-export const PixiGame = () => {
-    const blurFilter = useMemo(() => new BlurFilter(2), []);
-  const bunnyUrl = 'https://pixijs.io/pixi-react/img/bunny.png';
-  return (
-    <Stage x={800} y={600} options={{ background: 0x1099bb }}>
-      <Sprite image={bunnyUrl} x={300} y={150} />
-      <Sprite image={bunnyUrl} x={500} y={150} />
-      <Sprite image={bunnyUrl} x={400} y={200} />
+    gameContainerRef.current.appendChild(app.view);
 
-      <Container x={200} y={200}>
-        <Text
-          text="Hello World"
-          anchor={0.5}
-          x={220}
-          y={150}
-          filters={[blurFilter]}
-          style={
-            new TextStyle({
-              align: 'center',
-              fill: '0xffffff',
-              fontSize: 50,
-              letterSpacing: 20,
-              dropShadow: true,
-              dropShadowColor: '#E72264',
-              dropShadowDistance: 6,
-            })
-          }
-        />
-      </Container>
-    </Stage>
-  );
+    const player = new PIXI.Graphics();
+    player.beginFill(0xFFFFFF); // White square
+    player.drawRect(0, 0, 50, 50); // x, y, width, height
+    player.endFill();
+    player.x = app.screen.width / 2 - 25; // Centering the square
+    player.y = app.screen.height / 2 - 25;
+    app.stage.addChild(player);
+
+    // Handling keyboard events
+    let speed = 0;
+    const onKeyDown = (e) => {
+      if (e.key === 'a' || e.key === 'A') {
+        speed = -5;
+      } else if (e.key === 'd' || e.key === 'D') {
+        speed = 5;
+      }
+    };
+
+    const onKeyUp = (e) => {
+      if (e.key === 'a' || e.key === 'A' || e.key === 'd' || e.key === 'D') {
+        speed = 0;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+
+    app.ticker.add((delta) => {
+      player.x += speed * delta;
+    });
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      gameContainerRef.current.removeChild(app.view);
+      app.destroy(true);
+    };
+  }, []);
+
+  return <div ref={gameContainerRef} />;
 };
+
 export default PixiGame;
