@@ -8,7 +8,7 @@ import PixiGame from './PixiGame'; // Make sure the path matches where you saved
 const App = () => {
   return (
     <div>
-      <h1>Welcome to the PixiJS Game</h1>
+      <h1>Welcome to HopKing</h1>
       <PixiGame />
     </div>
   );
