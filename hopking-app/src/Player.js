@@ -2,10 +2,12 @@
 import * as PIXI from 'pixi.js';
 
 export default class Player {
-  constructor(app, controls) {
+  constructor(app, controls, platforms = []) {
     this.app = app;
     this.controls = controls;
+    this.platforms = platforms;
     this.originalHeight = 50;
+    this.width = 50; // Assuming the player is a square
     this.isJumping = false;
     this.isSquishing = false;
     this.verticalSpeed = 0;
@@ -14,6 +16,7 @@ export default class Player {
     this.lastDirection = 0; // 0 for stationary, -1 for left, 1 for right
     //Jump Meter 
     this.jumpMeter = null;
+    this.onPlatform = false;
     this.jumpMeterValue = 0; // Range from 0 to 1
     this.jumpMeterIncreasing = true;
     this.createPlayer();
@@ -28,6 +31,7 @@ export default class Player {
     this.player.endFill();
     this.player.x = this.app.screen.width / 2 - 25; // Center the player
     this.player.y = this.app.screen.height - 100; // Position above the bottom
+    
     this.app.stage.addChild(this.player);
   }
 
@@ -116,37 +120,106 @@ export default class Player {
     }
   }
 
-  attemptJump() {
-    if (!this.isJumping && !this.isSquishing) {
-      this.squish();
-    } else if (this.isSquishing) {
-      this.jump();
-    }
-  }
-
   update(delta) {
     // Call updateJumpMeter in your update loop
     this.updateJumpMeter(delta);
-    if (this.movingLeft) {
-      this.moveLeft(delta);
+    if (this.movingLeft && this.player.x > 0) {
+      this.player.x -= 5 * delta;
     }
-    if (this.movingRight) {
-      this.moveRight(delta);
+    if (this.movingRight && this.player.x < this.app.screen.width - this.width) {
+      this.player.x += 5 * delta;
     }
-    if (this.isJumping) {
-      this.player.x += this.horizontalSpeed * delta;
+    // Gravity and jumping
+    if (this.isJumping || !this.onPlatform) {
       this.player.y += this.verticalSpeed * delta;
-      this.verticalSpeed += this.gravity * delta; // Apply gravity to vertical speed
+      this.verticalSpeed += this.gravity * delta;
 
-      // Reset jump if player reaches the ground
-      if (this.player.y >= this.app.screen.height - 100) {
-        this.player.y = this.app.screen.height - 100;
-        this.isJumping = false;
+      // Prevent jumping through the ceiling
+      if (this.player.y < 0) {
+        this.player.y = 0;
         this.verticalSpeed = 0;
-        this.horizontalSpeed = 0; // Reset horizontal speed after landing
       }
+    } 
+
+    // Prevent falling through the floor
+    if (this.player.y > this.app.screen.height - this.originalHeight) {
+      //console.log(this.player.y, this.app.screen.height, this.originalHeight);
+      this.player.y = this.app.screen.height - this.originalHeight;
+      this.isJumping = false;
+      
+      this.verticalSpeed = 0;
     }
+
+    this.enforceAllCollisions();
+
   }
+  enforceAllCollisions()
+  {
+    let onPlatform = false;
+    const pB = {
+      x: this.player.x,
+      y: this.player.y,
+      width: this.width,
+      height: this.originalHeight
+    };
+    //console.log(pB.x, ' ', pB.y)
+    this.platforms.forEach(platform => {
+      // Use the explicitly stored properties for collision detection
+      const plb = {
+        x: platform.graphics.x,
+        y: platform.graphics.y,
+        width: platform.width,
+        height: platform.height
+      };
+      this.rectCollision(pB, plb);
+        
+    });
+    
+    //console.log(onPlatform);
+    return onPlatform;
+  }
+  rectCollision(a, b) {
+    const collision = a.x + a.width > b.x &&
+                      a.x < b.x + b.width &&
+                      a.y + a.height > b.y &&
+                      a.y < b.y + b.height;
+    this.onPlatform = false;
+    if (collision) {
+        // Top of a is touching bottom of b
+        if (a.y + a.height > b.y && a.y < b.y) {
+            console.log("Top of platform is touching bottom of square");
+            this.player.y = b.y - a.height;
+            this.onPlatform = true;
+            this.isJumping = false;
+            this.verticalSpeed = 0;
+        }
+
+        // Bottom of a is touching top of b
+        if (a.y < b.y + b.height && a.y + a.height > b.y + b.height) {
+            console.log("Bottom of platform is touching top of square");
+            this.player.y = b.y + b.height;
+            this.verticalSpeed = 0;
+
+        }
+        // This seems to work fine without platform left/right boundaries
+        // Left of a is touching right of b
+        if (a.x + a.width > b.x && a.x < b.x) {
+            console.log("Left of platform is touching right of square");
+            // this.player.x = b.x - a.width; // Adjust player to the left side of the platform
+            // this.horizontalSpeed = 0; // Stop horizontal movement
+        }
+
+        // Right of a is touching left of b
+        if (a.x < b.x + b.width && a.x + a.width > b.x + b.width) {
+            console.log("Right of platform is touching left of square");
+            // this.player.x = b.x + b.width; // Adjust player to the right side of the platform
+            // this.horizontalSpeed = 0; // Stop horizontal movement
+        }
+    }
+
+    return collision;
+}
+
 
   moveLeft(delta) {
     if (!this.isJumping) { // Prevent adjusting horizontal speed mid-jump
