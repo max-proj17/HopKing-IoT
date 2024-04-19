@@ -1,8 +1,3 @@
-
-Certainly! Here's the markdown text for your README, tailored to the instructions for setting up the HopKing-IoT project:
-
-markdown
-Copy code
 # HopKing-IoT
 
 ## Installation Instructions
