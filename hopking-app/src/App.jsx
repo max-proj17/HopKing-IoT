@@ -1,15 +1,22 @@
+import React, { useState } from 'react';
 import './App.css';
-import { useMemo } from 'react';
-import { BlurFilter, TextStyle } from 'pixi.js';
-import { Stage, Container, Sprite, Text } from '@pixi/react';
-import React from 'react';
-import PixiGame from './PixiGame'; // Make sure the path matches where you saved PixiGame.jsx
+import PixiGame from './PixiGame';
 
 const App = () => {
+  const [gameStarted, setGameStarted] = useState(false);
+
+  const startGame = () => {
+    setGameStarted(true);
+  };
+
   return (
     <div>
       <h1>Welcome to HopKing</h1>
-      <PixiGame />
+      {!gameStarted ? (
+        <button className="start-button" onClick={startGame}>Play</button>
+      ) : (
+        <PixiGame />
+      )}
     </div>
   );
 };

@@ -123,11 +123,20 @@ export default class Player {
   update(delta) {
     // Call updateJumpMeter in your update loop
     this.updateJumpMeter(delta);
-    if (this.movingLeft && this.player.x > 0) {
-      this.player.x -= 5 * delta;
-    }
-    if (this.movingRight && this.player.x < this.app.screen.width - this.width) {
-      this.player.x += 5 * delta;
+    this.player.x += this.horizontalSpeed * delta; // Update position horizontally
+    if (this.player.x < 0) this.player.x = 0;
+    if (this.player.x + this.player.width  > this.app.screen.width) this.player.x = this.app.screen.width - this.player.width; 
+    
+    if (this.jumpMeter.visible) {
+      // Do not allow horizontal movement when the jump meter is visible
+      this.horizontalSpeed = 0;
+    } else if (!this.isJumping) {
+        if (this.movingLeft && this.player.x > 0) {
+          this.player.x -= 5 * delta;
+        }
+        if (this.movingRight && this.player.x < this.app.screen.width - this.width) {
+          this.player.x += 5 * delta;
+        }
     }
     // Gravity and jumping
     if (this.isJumping || !this.onPlatform) {
@@ -146,7 +155,7 @@ export default class Player {
       //console.log(this.player.y, this.app.screen.height, this.originalHeight);
       this.player.y = this.app.screen.height - this.originalHeight;
       this.isJumping = false;
-      
+      this.horizontalSpeed = 0;
       this.verticalSpeed = 0;
     }
 
@@ -189,6 +198,7 @@ export default class Player {
         if (a.y + a.height > b.y && a.y < b.y) {
             console.log("Top of platform is touching bottom of square");
             this.player.y = b.y - a.height;
+            this.horizontalSpeed = 0;
             this.onPlatform = true;
             this.isJumping = false;
             this.verticalSpeed = 0;
@@ -207,6 +217,7 @@ export default class Player {
             console.log("Left of platform is touching right of square");
             // this.player.x = b.x - a.width; // Adjust player to the left side of the platform
             // this.horizontalSpeed = 0; // Stop horizontal movement
+            
         }
 
         // Right of a is touching left of b

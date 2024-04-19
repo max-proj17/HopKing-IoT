@@ -35,24 +35,43 @@ const PixiGame = () => {
     };
   }, []);
   // Function to generate platforms
+  // Function to generate platforms
   function generatePlatforms(app) {
     let platforms = [];
     const platformHeight = 20;
     const platformWidth = 100;
-    const numPlatforms = 1; // Number of platforms
+    const numPlatforms = 10; // Number of platforms
+    const verticalSpacing = 50; // Minimum vertical space between platforms
+    const topClearance = 100; // Space at the top before the first platform
+    const bottomClearance = 50; // Space at the bottom to allow room for the player
 
+    // Calculate the total usable height minus clearances and spacing for platforms
+    const totalUsableHeight = app.screen.height - topClearance - bottomClearance - (verticalSpacing * (numPlatforms - 1));
+
+    // Initialize y position for the first platform
+    let y = topClearance;
     for (let i = 0; i < numPlatforms; i++) {
-      const x = Math.random() * (app.screen.width - platformWidth);
-      const y = (app.screen.height / numPlatforms) * i;
-      //console.log('x,y in generatePlatforms: ', x, ':', y);
-      platforms.push(new Platform(app, x, y, platformWidth, platformHeight));
-    }
+      let x;
+      let overlap;
+      do {
+        overlap = false;
+        x = Math.random() * (app.screen.width - platformWidth);
+        // Check for horizontal overlap with other platforms
+        for (let j = 0; j < platforms.length; j++) {
+          if (Math.abs(platforms[j].graphics.x - x) < 50) {
+            overlap = true;
+            break;
+          }
+        }
+      } while (overlap);
 
-    // Ensure the last platform is near the top and the player can fit
-    platforms.push(new Platform(app, Math.random() * (app.screen.width - platformWidth), app.screen.height - 150, platformWidth, platformHeight));
+      platforms.push(new Platform(app, x, y, platformWidth, platformHeight));
+      y += platformHeight + verticalSpacing; // Increase y position by platform height and minimum space
+    }
 
     return platforms;
   }
+
   return <div ref={gameContainerRef} />;
 };
 
