@@ -5,7 +5,7 @@ import Player from './Player';
 import Controls from './Controls'; 
 import Platform from './Platform'; 
 
-const PixiGame = () => {
+const PixiGame = ({ onPlayerWin}) => {
   const gameContainerRef = useRef(null);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ const PixiGame = () => {
 
     // Generate platforms
     const platforms = generatePlatforms(app);
-    const player = new Player(app, controls, platforms); // Pass controls to player
+    const player = new Player(app, controls, platforms, onPlayerWin); // Pass controls to player
     //player.platforms = platforms; // Ensure the player has access to the platforms for collision detection
 
     app.ticker.add((delta) => {
@@ -29,11 +29,13 @@ const PixiGame = () => {
     });
 
     return () => {
-      gameContainerRef.current.removeChild(app.view);
+      if (gameContainerRef.current && app.view) {
+        gameContainerRef.current.removeChild(app.view);
+      }
       app.destroy(true);
       controls.destroy(); // Ensure controls are also cleaned up
     };
-  }, []);
+  }, [onPlayerWin]);
   // Function to generate platforms
   // Function to generate platforms
   function generatePlatforms(app) {
@@ -68,7 +70,8 @@ const PixiGame = () => {
       platforms.push(new Platform(app, x, y, platformWidth, platformHeight));
       y += platformHeight + verticalSpacing; // Increase y position by platform height and minimum space
     }
-
+    // Sort platforms by height to ensure the topmost platform is first
+    platforms.sort((a, b) => a.graphics.y - b.graphics.y);
     return platforms;
   }
 
