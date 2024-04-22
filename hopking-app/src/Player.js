@@ -2,10 +2,19 @@
 import * as PIXI from 'pixi.js';
 
 export default class Player {
-  constructor(app, controls, platforms = [], onPlayerWin) {
+  constructor(app, controls, platforms = [], onPlayerWin, name = "Player") {
     this.app = app;
     this.controls = controls;
     this.platforms = platforms;
+    this.app = app;
+    this.controls = controls;
+    this.platforms = platforms;
+    this.name = name;  // Default name, can be modified to take this as parameter
+    this.timeStarted = Date.now();
+    this.timeTaken = 0;
+    this.jumpsTaken = 0;
+  
+
     this.originalHeight = 50;
     this.width = 50; // Assuming the player is a square
     this.isJumping = false;
@@ -15,11 +24,13 @@ export default class Player {
     this.gravity = 0.5;
     this.lastDirection = 0; // 0 for stationary, -1 for left, 1 for right
     this.onPlayerWin = onPlayerWin; // Callback when the player wins
+
     //Jump Meter 
     this.jumpMeter = null;
     this.onPlatform = false;
     this.jumpMeterValue = 0; // Range from 0 to 1
     this.jumpMeterIncreasing = true;
+
     this.createPlayer();
     this.setupControls();
     this.createJumpMeter();
@@ -111,6 +122,7 @@ export default class Player {
     if (this.isSquishing) {
       this.isSquishing = false;
       this.isJumping = true;
+      this.jumpsTaken++;  // Increment jumps counter
       // Use jumpMeterValue to determine vertical and horizontal jump strength
       this.verticalSpeed = -17 * this.jumpMeterValue; // Example: scale the jump strength
       this.horizontalSpeed = this.lastDirection * 7 * this.jumpMeterValue;
@@ -181,7 +193,8 @@ export default class Player {
       this.player.x + this.width >= this.platforms[0].graphics.x && // player's right edge is on or past the platform's left edge
       this.player.x <= this.platforms[0].graphics.x + this.platforms[0].width) { // player's left edge is on or before the platform's right edge
       console.log("WIN");
-      this.onPlayerWin(); // Call the win callback
+      this.timeTaken = (Date.now() - this.timeStarted) / 1000; // Calculate time taken in seconds
+      this.onPlayerWin(this.name, this.timeTaken, this.jumpsTaken);
     }
 
   }

@@ -5,10 +5,12 @@ import Player from './Player';
 import Controls from './Controls'; 
 import Platform from './Platform'; 
 
-const PixiGame = ({ onPlayerWin}) => {
+const PixiGame = ({ onPlayerWin, startGame }) => {
   const gameContainerRef = useRef(null);
 
   useEffect(() => {
+    if (!startGame) return;
+
     const app = new PIXI.Application({
       width: 800,
       height: 800,
@@ -17,12 +19,9 @@ const PixiGame = ({ onPlayerWin}) => {
 
     gameContainerRef.current.appendChild(app.view);
     const controls = new Controls();
-    
-
-    // Generate platforms
     const platforms = generatePlatforms(app);
     const player = new Player(app, controls, platforms, onPlayerWin); // Pass controls to player
-    //player.platforms = platforms; // Ensure the player has access to the platforms for collision detection
+    
 
     app.ticker.add((delta) => {
       player.update(delta);
@@ -41,39 +40,36 @@ const PixiGame = ({ onPlayerWin}) => {
   function generatePlatforms(app) {
     let platforms = [];
     const platformHeight = 20;
-    const platformWidth = 100;
-    const numPlatforms = 10; // Number of platforms
-    const verticalSpacing = 50; // Minimum vertical space between platforms
-    const topClearance = 100; // Space at the top before the first platform
-    const bottomClearance = 50; // Space at the bottom to allow room for the player
-
-    // Calculate the total usable height minus clearances and spacing for platforms
-    const totalUsableHeight = app.screen.height - topClearance - bottomClearance - (verticalSpacing * (numPlatforms - 1));
-
-    // Initialize y position for the first platform
+    const platformWidth = 150;
+    const numPlatforms = 5;
+    const verticalSpacing = 100;
+    const topClearance = 100;
+    const bottomClearance = 50;
+  
     let y = topClearance;
     for (let i = 0; i < numPlatforms; i++) {
-      let x;
-      let overlap;
+      let x, overlap, attempts = 0;
       do {
+        if (attempts++ > 100) { // Break after 100 attempts to avoid infinite loop
+          console.error('Failed to place platform without overlap after 100 attempts.');
+          break;
+        }
         overlap = false;
         x = Math.random() * (app.screen.width - platformWidth);
-        // Check for horizontal overlap with other platforms
         for (let j = 0; j < platforms.length; j++) {
-          if (Math.abs(platforms[j].graphics.x - x) < 50) {
+          if (Math.abs(platforms[j].graphics.x - x) < 50) { // Adjusted to 70
             overlap = true;
             break;
           }
         }
       } while (overlap);
-
+  
       platforms.push(new Platform(app, x, y, platformWidth, platformHeight));
-      y += platformHeight + verticalSpacing; // Increase y position by platform height and minimum space
+      y += platformHeight + verticalSpacing;
     }
-    // Sort platforms by height to ensure the topmost platform is first
-    platforms.sort((a, b) => a.graphics.y - b.graphics.y);
     return platforms;
   }
+  
 
   return <div ref={gameContainerRef} />;
 };
