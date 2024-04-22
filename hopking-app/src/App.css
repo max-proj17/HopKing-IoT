@@ -1,8 +1,17 @@
+/* App.css */
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+}
+
+.start-button:hover {
+  background-color: #535bf2;
+}
+
+h1 {
+  font-size: 3em;
 }
 
 .logo {
@@ -11,9 +20,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -45,13 +56,30 @@
   background-color: #646cff;
   color: white;
   padding: 10px 20px;
-  font-size: 1.5em;
+  font-size: 1em;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  margin-right: 10px;
   transition: background-color 0.3s;
 }
 
-.start-button:hover {
-  background-color: #535bf2;
+.win-screen {
+  text-align: center;
+  padding: 20px;
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.win-screen p {
+  font-size: 1.4em; /* Slightly larger text size */
+  color: #333; /* Darker text color for better readability */
+  margin-bottom: 20px;
+  font-weight: bold; /* Make the text bold */
+}
+
+.win-screen p span {
+  color: #646cff; /* Highlight color for important details */
+  font-weight: normal; /* Normal weight for numbers */
 }

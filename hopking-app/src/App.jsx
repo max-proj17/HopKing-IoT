@@ -25,13 +25,15 @@ const App = () => {
   };
 
   return (
-    <div>
-      <h1>Welcome to HopKing</h1>
+    <div className="app-container">
       {!gameStarted && !gameWon ? (
-        <button className="start-button" onClick={startGame}>Play</button>
-      ) : gameWon ? (
         <div>
-          Player {playerData.name} won! Time Taken: {playerData.timeTaken} seconds with {playerData.jumpsTaken} jumps.
+          <h1>Welcome to HopKing</h1>
+          <button className="start-button" onClick={startGame}>Play</button>
+        </div>
+      ) : gameWon ? (
+        <div className="win-screen">
+          <p>Player <span>{playerData.name}</span> won! Time Taken: <span>{playerData.timeTaken}</span> seconds with <span>{playerData.jumpsTaken}</span> jumps.</p>
           <button className="start-button" onClick={startGame}>Play Again</button>
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
