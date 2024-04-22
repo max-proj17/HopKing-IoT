@@ -13,11 +13,13 @@ const App = () => {
   const [countdown, setCountdown] = useState(15);
   const [inLobby, setInLobby] = useState(false);
   const [lobbyCount, setLobbyCount] = useState(0);
+  const [playersInLobby, setPlayersInLobby] = useState([]);
+
 
   const startGame = () => {
     setGameStarted(true);
     setGameWon(false);  // Ensure win state is reset when starting a new game
-    setPlayerData({});
+    setPlayerData({name: playerData.name});
     setCountdown(15); // Reset countdown when game starts
   };
   
@@ -40,13 +42,14 @@ const App = () => {
   };
 
   const joinLobby = () => {
-    if (!socket) {
-      //console.log('No connection');
-      const newSocket = io('http://localhost:3000'); // Adjust this URL to your server's
+    const playerName = prompt("Please enter your name:");
+    if (playerName && !socket) {
+      const newSocket = io('http://localhost:3000');  // Adjust this URL to your server's
       setSocket(newSocket);
       newSocket.on('connect', () => {
         console.log(`Connected with ID: ${newSocket.id}`);
-        newSocket.emit('joinLobby');
+        newSocket.emit('joinLobby', playerName);
+        setPlayerData({ name: playerName });  // Store the player's name in state
       });
     }
   };
@@ -72,6 +75,7 @@ const App = () => {
     if (socket) {
       socket.on('lobbyUpdate', data => {
         setLobbyCount(data.count);
+        setPlayersInLobby(data.players);
         setInLobby(true);
       });
 
@@ -99,18 +103,18 @@ const App = () => {
         <div>
           <h2>Waiting Room</h2>
           <p>Players in lobby: {lobbyCount}</p>
+          {playersInLobby.map(player => <p key={player}>{player}</p>)}
           {lobbyCount > 1 && <button className="start-button" onClick={startGame}>Start Game</button>}
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : gameWon ? (
         <div className="win-screen">
           <p>Player {playerData.name} won! Time Taken: {playerData.timeTaken} seconds with {playerData.jumpsTaken} jumps.</p>
-          <p>Returning to start in {countdown} seconds...</p>
           <button className="start-button" onClick={startGame}>Play Again</button>
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : (
-        <PixiGame onPlayerWin={handlePlayerWin} startGame={gameStarted} />
+        <PixiGame onPlayerWin={handlePlayerWin} startGame={gameStarted} playerName={playerData.name} />
       )}
     </div>
   );

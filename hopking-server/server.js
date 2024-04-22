@@ -17,26 +17,29 @@ let waitingPlayers = [];
 io.on('connection', (socket) => {
   console.log('A user connected: ' + socket.id);
 
-  socket.on('joinLobby', () => {
-    waitingPlayers.push(socket);
-    console.log(`User ${socket.id} joined the lobby.`);
+  socket.on('joinLobby', (playerName) => {
+    waitingPlayers.push({ socket, name: playerName });
+    console.log(`Player ${playerName} (${socket.id}) joined the lobby.`);
 
-    // Emit to all sockets in the lobby that a new player has joined
-    io.emit('lobbyUpdate', { count: waitingPlayers.length });
+    // Emit to all sockets in the lobby the current player list
+    io.emit('lobbyUpdate', { 
+        count: waitingPlayers.length, 
+        players: waitingPlayers.map(p => p.name) });
 
-    // Debugging: start game immediately for testing
-    if (waitingPlayers.length >= 1) {
+    // Debugging: start game immediately for testing, remove this in production or adjust as needed
+    if (waitingPlayers.length >= 1) { // Change to the desired number of minimum players
       io.emit('startGame');
-      waitingPlayers = [];
+      waitingPlayers = []; // Clear the lobby after starting the game
     }
   });
 
   socket.on('disconnect', () => {
-    waitingPlayers = waitingPlayers.filter(player => player.id !== socket.id);
-    io.emit('lobbyUpdate', { count: waitingPlayers.length });
+    waitingPlayers = waitingPlayers.filter(p => p.socket.id !== socket.id);
+    io.emit('lobbyUpdate', { count: waitingPlayers.length, players: waitingPlayers.map(p => p.name) });
     console.log('User disconnected: ' + socket.id);
   });
 });
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

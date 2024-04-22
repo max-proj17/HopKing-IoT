@@ -5,7 +5,7 @@ import Player from './Player';
 import Controls from './Controls'; 
 import Platform from './Platform'; 
 
-const PixiGame = ({ onPlayerWin, startGame }) => {
+const PixiGame = ({ onPlayerWin, startGame, playerName }) => {
   const gameContainerRef = useRef(null);
 
   useEffect(() => {
@@ -20,7 +20,8 @@ const PixiGame = ({ onPlayerWin, startGame }) => {
     gameContainerRef.current.appendChild(app.view);
     const controls = new Controls();
     const platforms = generatePlatforms(app);
-    const player = new Player(app, controls, platforms, onPlayerWin); // Pass controls to player
+    console.log(playerName);
+    const player = new Player(app, controls, platforms, onPlayerWin, playerName); // Pass controls to player
     
 
     app.ticker.add((delta) => {
@@ -34,7 +35,7 @@ const PixiGame = ({ onPlayerWin, startGame }) => {
       app.destroy(true);
       controls.destroy(); // Ensure controls are also cleaned up
     };
-  }, [onPlayerWin]);
+  }, [onPlayerWin, playerName]);
   // Function to generate platforms
   // Function to generate platforms
   function generatePlatforms(app) {
