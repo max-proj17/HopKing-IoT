@@ -32,9 +32,9 @@ Ensure you have [Node.js](https://nodejs.org/en/) installed on your system. This
 
 
 - Then, install the project dependencies:
-```
-npm install
-```
+   ```
+   npm install
+   ```
 
 - This command installs the necessary packages specified in the `package.json` file.
 
@@ -48,14 +48,14 @@ npm install
 5. **Start the Development Server**
 
 - Start the development server to run the project locally:
-```
-npx vite dev
-```
+   ```
+   npx vite dev
+   ```
 
 - Or, if a script is specified in the `package.json`:
-```
-npm run dev
-```
+   ```
+   npm run dev
+   ```
 
 - This command will start the development server. The terminal output will provide the local URL where the project is running (usually `http://localhost:3000` or similar).
 - Open up two side-by-side terminals for the server and Pixi-Vite app.
