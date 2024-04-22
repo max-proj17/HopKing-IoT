@@ -83,3 +83,10 @@ h1 {
   color: #646cff; /* Highlight color for important details */
   font-weight: normal; /* Normal weight for numbers */
 }
+/* Add to App.css */
+.countdown {
+  font-size: 1em;
+  color: #555;
+  margin-top: 10px;
+  font-weight: bold;
+}
