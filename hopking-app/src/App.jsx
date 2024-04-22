@@ -16,6 +16,14 @@ const App = () => {
   const [playersInLobby, setPlayersInLobby] = useState([]);
 
 
+  const startGameManually = () => {
+    if (socket && lobbyCount >= 1) {  // Ensure there is at least 1 player
+      socket.emit('startGameManually');  // Emit an event to the server to start the game manually
+      setGameStarted(true);
+      setInLobby(false);
+    }
+  };
+
   const startGame = () => {
     setGameStarted(true);
     setGameWon(false);  // Ensure win state is reset when starting a new game
@@ -105,11 +113,13 @@ const App = () => {
           <p>Players in lobby: {lobbyCount}</p>
           {playersInLobby.map(player => <p key={player}>{player}</p>)}
           {lobbyCount > 1 && <button className="start-button" onClick={startGame}>Start Game</button>}
+          <button className="start-button" onClick={startGameManually} disabled={lobbyCount < 1}>Start Game</button>
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : gameWon ? (
         <div className="win-screen">
           <p>Player {playerData.name} won! Time Taken: {playerData.timeTaken} seconds with {playerData.jumpsTaken} jumps.</p>
+          <p>Returning to start in {countdown} seconds...</p>
           <button className="start-button" onClick={startGame}>Play Again</button>
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>

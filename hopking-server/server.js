@@ -26,10 +26,16 @@ io.on('connection', (socket) => {
         count: waitingPlayers.length, 
         players: waitingPlayers.map(p => p.name) });
 
-    // Debugging: start game immediately for testing, remove this in production or adjust as needed
-    if (waitingPlayers.length >= 1) { // Change to the desired number of minimum players
+    // // Debugging: start game immediately for testing, remove this in production or adjust as needed
+    // if (waitingPlayers.length >= 1) { // Change to the desired number of minimum players
+    //   io.emit('startGame');
+    //   waitingPlayers = []; // Clear the lobby after starting the game
+    // }
+  });
+  socket.on('startGameManually', () => {
+    if (waitingPlayers.length >= 1) {  // This checks if there are enough players to start the game
       io.emit('startGame');
-      waitingPlayers = []; // Clear the lobby after starting the game
+      waitingPlayers = []; // Optionally clear the lobby after starting the game
     }
   });
 
