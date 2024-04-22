@@ -38,7 +38,14 @@ npm install
 
 - This command installs the necessary packages specified in the `package.json` file.
 
-4. **Start the Development Server**
+4. ** Start Express Server**
+
+- Go to server directory and start the server:
+  ```
+  cd hopking-server
+  node server.js
+  ```
+6. **Start the Development Server**
 
 - Start the development server to run the project locally:
 ```
@@ -49,5 +56,7 @@ npx vite dev
 ```
 npm run dev
 ```
+- Open up two side-by-side terminals for the server and Pixi-Vite app.
+
 
 - This command will start the development server. The terminal output will provide the local URL where the project is running (usually `http://localhost:3000` or similar).
