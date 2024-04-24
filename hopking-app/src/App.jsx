@@ -32,15 +32,15 @@ const App = () => {
       }); 
 
       newSocket.on('joinRejected', (message) => {
-        alert(message); // Show the user why they can't join
+        //alert(message); // Show the user why they can't join
         newSocket.disconnect();
         setSocket(null);
       });
 
       newSocket.on('joinAccepted', (message) =>{
+        console.log('player ' + playerData + ' got refreshed');
         console.log(`Connected with ID: ${newSocket.id}` + ' name: ' + playerName);
         alert(message);
-        
         setInLobby(true);
       })
       
@@ -48,10 +48,10 @@ const App = () => {
   };
 
   const startGameManually = () => {
-    if (socket && lobbyCount > 1) {  // Ensure there is at least 1 player
+    if (socket && lobbyCount > 1 && !gameStarted) {  // Ensure there is at least 1 player
       console.log('CALLING SERVER TO START');
       socket.emit('startGameManually');  // Emit an event to the server to start the game manually
-      console.log('playerData.name is: ' + playerData.name);
+      //console.log('playerData.name is: ' + playerData.name);
       setGameStarted(true);
       setInLobby(false);
       setGameWon(false);  // Ensure win state is reset when starting a new game
@@ -98,10 +98,7 @@ const App = () => {
         console.log('gameWon ' + gameWon);
         console.log('gameStarted ' + gameStarted);
       });
-      // socket.on('updateCountdown', (countdown) => {
-      //   setCountdown(countdown);
-      // });
-      // socket.on('returnToLobby', () => {
+
       //   setGameWon(false);
       //   setInLobby(true);
       //   setWinnerData(null);
@@ -111,7 +108,7 @@ const App = () => {
       socket.on('lobbyUpdate', data => {
         setLobbyCount(data.count);
         setPlayersInLobby(data.players);
-        //setInLobby(true);
+
       });
 
       socket.on('startGame', () => {
@@ -126,19 +123,12 @@ const App = () => {
         setWinnerData(null);
         backToStart();
       });
-      socket.on('gameActive?', (response) => {
-        console.log('3. gameActive? ' + response);
-        setGameStarted(response);
-        console.log('3.5 gameStarted in gameActive? set to: ' + gameStarted);
-      });
-
-
+     
       return () => {
         socket.off('lobbyUpdate');
         socket.off('startGame');
         socket.off('gameWon');
         socket.off('updateCountdown');
-        //socket.off('returnToLobby');
         socket.off('mainMenu');
       };
     }
