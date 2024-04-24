@@ -10,38 +10,77 @@ const App = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [playerData, setPlayerData] = useState({});
+  const [winnerData, setWinnerData] = useState({});
   const [countdown, setCountdown] = useState(15);
   const [inLobby, setInLobby] = useState(false);
   const [lobbyCount, setLobbyCount] = useState(0);
   const [playersInLobby, setPlayersInLobby] = useState([]);
+  const [onWinScreen, setOnWinScreen] = useState(false);
 
 
-  const startGameManually = () => {
-    if (socket && lobbyCount >= 1) {  // Ensure there is at least 1 player
-      socket.emit('startGameManually');  // Emit an event to the server to start the game manually
-      setGameStarted(true);
-      setInLobby(false);
+  const joinLobby = () => {
+    //console.log('1. in joinLobby');
+
+    if (!socket) {
+      const playerName = prompt("Please enter your name:");
+      const newSocket = io('http://localhost:3000');  // Adjust this URL to your server's
+      setSocket(newSocket);
+      //console.log(newSocket.connected);
+     
+      newSocket.on('connect', () => {
+        newSocket.emit('joinLobby', playerName);
+        
+      }); 
+
+      newSocket.on('joinRejected', (message) => {
+        alert(message); // Show the user why they can't join
+        newSocket.disconnect();
+        setSocket(null);
+      });
+
+      newSocket.on('joinAccepted', (message) =>{
+        console.log(`Connected with ID: ${newSocket.id}`);
+        alert(message);
+        setPlayerData({ name: playerName });  // Store the player's name in state
+        setInLobby(true);
+      })
+      
     }
   };
 
-  const startGame = () => {
-    setGameStarted(true);
-    setGameWon(false);  // Ensure win state is reset when starting a new game
-    setPlayerData({name: playerData.name});
-    setCountdown(15); // Reset countdown when game starts
+  const startGameManually = () => {
+    if (socket && lobbyCount > 1) {  // Ensure there is at least 1 player
+      console.log('CALLING SERVER TO START');
+      socket.emit('startGameManually');  // Emit an event to the server to start the game manually
+      setGameStarted(true);
+      setInLobby(false);
+      setGameWon(false);  // Ensure win state is reset when starting a new game
+      setPlayerData({name: playerData.name});
+    }
   };
+
+  // const startGame = () => {
+  //   setGameStarted(true);
+  //   setGameWon(false);  // Ensure win state is reset when starting a new game
+  //   setPlayerData({name: playerData.name});
+  // };
   
   const handlePlayerWin = (name, timeTaken, jumpsTaken) => {
-    setPlayerData({ name, timeTaken, jumpsTaken });
-    setGameWon(true);       // Show win screen
-    setGameStarted(false); // Or manage another state to show the win screen
+    console.log('Player ' + name + ' won.');
+    const winnerData = { name, timeTaken, jumpsTaken };
+    console.log('emitting playerWin');
+    socket.emit('playerWin', winnerData);
+    
   };
+
   const backToStart = () => {
+    //onWinScreen(false);
     setGameStarted(false);
     setGameWon(false);
     setInLobby(false);
     setPlayerData({});
-    setCountdown(15);
+    socket.emit('leaveGame');
+    //setCountdown(15);
     if (socket) {
       socket.disconnect();
       setSocket(null);
@@ -49,53 +88,62 @@ const App = () => {
     
   };
 
-  const joinLobby = () => {
-    const playerName = prompt("Please enter your name:");
-    if (playerName && !socket) {
-      const newSocket = io('http://localhost:3000');  // Adjust this URL to your server's
-      setSocket(newSocket);
-      newSocket.on('connect', () => {
-        console.log(`Connected with ID: ${newSocket.id}`);
-        newSocket.emit('joinLobby', playerName);
-        setPlayerData({ name: playerName });  // Store the player's name in state
-      });
-    }
-  };
-
-  // Countdown effect
-  useEffect(() => {
-    if (gameWon) {
-      const timerId = setTimeout(() => {
-        if (countdown > 0) {
-          setCountdown(countdown - 1);
-        } else {
-          backToStart(); // Automatically navigate back if no interaction
-        }
-      }, 1000);
-      return () => clearTimeout(timerId);
-    } else {
-      setCountdown(15); // Reset countdown when game is not won
-    }
-  }, [gameWon, countdown]);
-
-
   useEffect(() => {
     if (socket) {
+
+      socket.on('gameWon', (winnerData) => {
+        //setCountdown(countdown);
+        console.log('received gameWon from ' + winnerData.name);
+        setWinnerData(winnerData);
+        setGameWon(true);       // Show win screen
+        setGameStarted(false); // Or manage another state to show the win screen
+        console.log('gameWon ' + gameWon);
+        console.log('gameStarted ' + gameStarted);
+      });
+      socket.on('updateCountdown', (countdown) => {
+        //if(onWinScreen){
+        setCountdown(countdown);
+        //}
+      });
+      // socket.on('returnToLobby', () => {
+      //   setGameWon(false);
+      //   setInLobby(true);
+      //   setWinnerData(null);
+      //   setPlayerData({});
+      //   //setCountdown(15);  // Reset for next game
+      // });
       socket.on('lobbyUpdate', data => {
         setLobbyCount(data.count);
         setPlayersInLobby(data.players);
-        setInLobby(true);
+        //setInLobby(true);
       });
 
       socket.on('startGame', () => {
         console.log('Game is starting!');
         setGameStarted(true);
         setInLobby(false);
+        setGameWon(false);  // Ensure win state is reset when starting a new game
+        setPlayerData({name: playerData.name});
       });
+      socket.on('mainMenu', () => {
+        console.log('Going back to main menu');
+        setWinnerData(null);
+        backToStart();
+      });
+      socket.on('gameActive?', (response) => {
+        console.log('3. gameActive? ' + response);
+        setGameStarted(response);
+        console.log('3.5 gameStarted in gameActive? set to: ' + gameStarted);
+      });
+
 
       return () => {
         socket.off('lobbyUpdate');
         socket.off('startGame');
+        socket.off('gameWon');
+        socket.off('updateCountdown');
+        //socket.off('returnToLobby');
+        socket.off('mainMenu');
       };
     }
   }, [socket]);
@@ -112,15 +160,14 @@ const App = () => {
           <h2>Waiting Room</h2>
           <p>Players in lobby: {lobbyCount}</p>
           {playersInLobby.map(player => <p key={player}>{player}</p>)}
-          {lobbyCount > 1 && <button className="start-button" onClick={startGame}>Start Game</button>}
-          <button className="start-button" onClick={startGameManually} disabled={lobbyCount < 1}>Start Game</button>
+          {lobbyCount > 1 && <button className="start-button" onClick={startGameManually}>Start Game</button>}
+          {/* <button className="start-button" onClick={startGameManually} disabled={lobbyCount < 1}>Start Game</button> */}
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : gameWon ? (
         <div className="win-screen">
-          <p>Player {playerData.name} won! Time Taken: {playerData.timeTaken} seconds with {playerData.jumpsTaken} jumps.</p>
-          <p>Returning to start in {countdown} seconds...</p>
-          <button className="start-button" onClick={startGame}>Play Again</button>
+          <p>Player {winnerData.name} won! Time Taken: {winnerData.timeTaken} seconds with {winnerData.jumpsTaken} jumps.</p>
+          {/* <button className="start-button" onClick={joinLobby}>Play Again</button> */}
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : (

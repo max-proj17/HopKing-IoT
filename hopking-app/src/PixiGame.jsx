@@ -58,7 +58,7 @@ const PixiGame = ({ onPlayerWin, startGame, playerName }) => {
         overlap = false;
         x = Math.random() * (app.screen.width - platformWidth);
         for (let j = 0; j < platforms.length; j++) {
-          if (Math.abs(platforms[j].graphics.x - x) < 70) { // Adjusted to 70
+          if (Math.abs(platforms[j].graphics.x - x) < 80) { // Adjusted to 70
             overlap = true;
             break;
           }
