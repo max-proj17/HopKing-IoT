@@ -41,15 +41,15 @@ io.on('connection', (socket) => {
 
   });
 
-  socket.on('requestGameState', () => {
+  // socket.on('requestGameState', () => {
 
-    io.emit('gameActive?', gameIsActive);
-  });
+  //   io.emit('gameActive?', gameIsActive);
+  // });
 
   socket.on('joinLobby', (playerName) => {
     if (gameIsActive) {
       socket.emit('joinRejected', 'Game is currently active. Please wait.'); // Notify the client
-      socket.disconnect(); // Optionally disconnect the socket
+      //socket.disconnect(); // Optionally disconnect the socket
     } else {
       waitingPlayers.push({ socket, name: playerName });
       console.log(`Player ${playerName} (${socket.id}) joined the lobby.`);
@@ -62,7 +62,6 @@ io.on('connection', (socket) => {
   socket.on('startGameManually', () => {
     console.log('startGameManually is CALLED');
     if (!gameIsActive && waitingPlayers.length > 1) {
-      //io.emit('startGame');
       waitingPlayers.forEach(p => p.socket.emit('startGame'));
       waitingPlayers = [];
       console.log('Game active is set to true');
@@ -71,10 +70,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    waitingPlayers = waitingPlayers.filter(p => p.socket.id !== socket.id);
-    io.emit('lobbyUpdate', { count: waitingPlayers.length, players: waitingPlayers.map(p => p.name) });
-    console.log('User disconnected: ' + socket.id);
-    console.log('Updated Lobby: ' + waitingPlayers);
+    if(!gameIsActive){
+      waitingPlayers = waitingPlayers.filter(p => p.socket.id !== socket.id);
+      io.emit('lobbyUpdate', { count: waitingPlayers.length, players: waitingPlayers.map(p => p.name) });
+      console.log('User disconnected: ' + socket.id);
+      console.log('Updated Lobby: ' + waitingPlayers);
+    }
   });
 });
 
