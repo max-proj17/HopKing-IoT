@@ -124,7 +124,7 @@ export default class Player {
       this.isJumping = true;
       this.jumpsTaken++;  // Increment jumps counter
       // Use jumpMeterValue to determine vertical and horizontal jump strength
-      this.verticalSpeed = -18 * this.jumpMeterValue; // Example: scale the jump strength
+      this.verticalSpeed = -20 * this.jumpMeterValue; // Example: scale the jump strength
       this.horizontalSpeed = this.lastDirection * 7 * this.jumpMeterValue;
       this.player.clear();
       this.player.beginFill(0xFFFFFF);

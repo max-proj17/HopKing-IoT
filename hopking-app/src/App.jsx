@@ -22,7 +22,7 @@ const App = () => {
 
     if (!socket) {
       const playerName = prompt("Please enter your name:");
-      const newSocket = io('http://localhost:3000');  // Adjust this URL to your server's
+      const newSocket = io('http://10.8.17.20:3000');  // Adjust this URL to your server's
       setSocket(newSocket);
       setPlayerData({ name: playerName });  // Store the player's name in state
 
