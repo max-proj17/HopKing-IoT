@@ -3,7 +3,6 @@ import './App.css';
 import PixiGame from './PixiGame';
 import io from 'socket.io-client';
 
-//const socket = io('http://localhost:3000'); // Adjust this URL to your server's
 
 const App = () => {
   const [socket, setSocket] = useState(null);
@@ -11,17 +10,17 @@ const App = () => {
   const [gameWon, setGameWon] = useState(false);
   const [playerData, setPlayerData] = useState({});
   const [winnerData, setWinnerData] = useState({});
-  const [countdown, setCountdown] = useState(15);
   const [inLobby, setInLobby] = useState(false);
   const [lobbyCount, setLobbyCount] = useState(0);
   const [playersInLobby, setPlayersInLobby] = useState([]);
-  const [onWinScreen, setOnWinScreen] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false); // State to control the visibility of the leaderboard popup
+  const [leaderboard, setLeaderBoard] = useState({});
 
 
   const joinLobby = () => {
 
     if (!socket) {
-      const playerName = prompt("Please enter your name:");
+      const playerName = prompt("Please enter your name.\nPlease no code injections such as \"\${name}\"");
       const newSocket = io('http://10.8.17.20:3000');  // Adjust this URL to your server's
       setSocket(newSocket);
       setPlayerData({ name: playerName });  // Store the player's name in state
@@ -32,7 +31,6 @@ const App = () => {
       }); 
 
       newSocket.on('joinRejected', (message) => {
-        //alert(message); // Show the user why they can't join
         newSocket.disconnect();
         setSocket(null);
       });
@@ -47,11 +45,42 @@ const App = () => {
     }
   };
 
+  const toggleLeaderBoard = () => {
+
+    console.log('in leaderboard');
+    //make a socket connection to server
+    const newSocket = io('http://10.8.17.20:3000');  // Adjust this URL to your server's
+    setSocket(newSocket);
+    //emit toggleLeaderBoard
+    newSocket.on('connect', () => {
+        newSocket.emit('toggleLeaderBoard');
+        console.log('emitted toggleLeaderBoard');
+    });
+    // on.leaderboardUpdate - > change the html???
+    newSocket.on('leaderBoardUpdate', (leaderboard) => {
+      console.log('received leaderboard update');
+      setLeaderBoard(leaderboard);
+      console.log(leaderboard);
+      setTimeout(() => {
+        setShowLeaderboard(!showLeaderboard);
+        newSocket.disconnect();
+        setSocket(null);
+        console.log(leaderboard);
+      }, 0);
+      
+    });
+
+    
+    
+
+  };
+
+  
+
   const startGameManually = () => {
     if (socket && lobbyCount > 1 && !gameStarted) {  // Ensure there is at least 1 player
       console.log('CALLING SERVER TO START');
       socket.emit('startGameManually');  // Emit an event to the server to start the game manually
-      //console.log('playerData.name is: ' + playerData.name);
       setGameStarted(true);
       setInLobby(false);
       setGameWon(false);  // Ensure win state is reset when starting a new game
@@ -123,6 +152,11 @@ const App = () => {
         setWinnerData(null);
         backToStart();
       });
+
+      socket.on('leaderBoardUpdate', (leaderboard) =>
+      {
+        setLeaderBoard(leaderboard);
+      });
      
       return () => {
         socket.off('lobbyUpdate');
@@ -130,6 +164,7 @@ const App = () => {
         socket.off('gameWon');
         socket.off('updateCountdown');
         socket.off('mainMenu');
+        socket.off('leaderBoardUpdate');
       };
     }
   }, [socket]);
@@ -140,20 +175,49 @@ const App = () => {
         <div>
           <h1>Welcome to HopKing</h1>
           <button className="start-button" onClick={joinLobby}>Join Lobby</button>
+          <button className="start-button" onClick={toggleLeaderBoard}>View Leaderboard</button>
+          {showLeaderboard && (
+            <div className="leaderboard-popup">
+              <h2>Leaderboard</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Score</th>
+                      <th>Wins</th>
+                      <th>Jumps</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(leaderboard).map(([key, value]) => (
+                      <tr key={key}>
+                        <td>{value[0]}</td>
+                        <td>{value[1]}</td>
+                        <td>{value[4]}</td>
+                        <td>{value[3]}</td>
+                        <td>{value[2]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <button onClick={toggleLeaderBoard}>Close</button>
+            </div>
+          )}
         </div>
+        
       ) : inLobby ? (
         <div>
           <h2>Waiting Room</h2>
           <p>Players in lobby: {lobbyCount}</p>
           {playersInLobby.map(player => <p key={player}>{player}</p>)}
-          {lobbyCount > 1 && <button className="start-button" onClick={startGameManually}>Start Game</button>}
-          {/* <button className="start-button" onClick={startGameManually} disabled={lobbyCount < 1}>Start Game</button> */}
+          {lobbyCount > 1 && <button className="start-button" onClick={startGameManually}>Start Game</button>}         
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : gameWon ? (
         <div className="win-screen">
           <p>Player {winnerData.name} won! Time Taken: {winnerData.timeTaken} seconds with {winnerData.jumpsTaken} jumps.</p>
-          {/* <button className="start-button" onClick={joinLobby}>Play Again</button> */}
+      
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : (
