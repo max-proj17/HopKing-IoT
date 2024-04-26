@@ -18,12 +18,13 @@ const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
     });
 
     gameContainerRef.current.appendChild(app.view);
+    // These are event listeners for the keyboard keys (not needed)
     const controls = new Controls();
     const platforms = generatePlatforms(app);
     console.log(playerName);
     const player = new Player(app, controls, platforms, onPlayerWin, playerName); // Pass controls to player
     
-
+    // updates player movements, jump bar, etc (ADD playerMove here)
     app.ticker.add((delta) => {
       player.update(delta);
     });
@@ -36,7 +37,7 @@ const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
       controls.destroy(); // Ensure controls are also cleaned up
     };
   }, [onPlayerWin, playerName]);
-  // Function to generate platforms
+ 
   // Function to generate platforms
   function generatePlatforms(app) {
     let platforms = [];
