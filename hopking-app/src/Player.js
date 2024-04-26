@@ -47,6 +47,12 @@ export default class Player {
     this.app.stage.addChild(this.player);
   }
 
+  // Make this 'listenControls' with if statements being the class names and run this in update(delta, playerMove)
+  // And run 'listenControls' before everything else happens
+
+  // Controls.js probably wont be needed as it just sets up the event listeners for the WASD keys
+  // this.controls is justan instance of the Controls object (see PixiGame.js)
+
   setupControls() {
     //replace key listeners with camera-feed/model-output listener?
     this.controls.registerKey('a', (isDown) => {
@@ -71,6 +77,8 @@ export default class Player {
         }
       });
   }
+
+  
   createJumpMeter() {
     this.jumpMeter = new PIXI.Graphics();
     this.jumpMeter.beginFill(0xFF0000); // Red for visibility
@@ -134,10 +142,12 @@ export default class Player {
     }
   }
 
+  // Pass playerMove into update(delta, playerMove) in Player.js and PixiGame.js
+  // Before updateJumpMeter, run 'listenControls(playerMove)
+
   update(delta) {
-    // Call updateJumpMeter in your update loop
-    // Existing update logic omitted for brevity
-    
+  
+    // listenControls(playerMove);
     this.updateJumpMeter(delta);
     this.player.x += this.horizontalSpeed * delta; // Update position horizontally
     if (this.player.x < 0) this.player.x = 0;
