@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import PixiGame from './PixiGame';
 import io from 'socket.io-client';
+import * as tmPose from '@teachablemachine/pose'; // Import Teachable Machine modules
 
 
 const App = () => {
@@ -15,7 +16,9 @@ const App = () => {
   const [playersInLobby, setPlayersInLobby] = useState([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false); // State to control the visibility of the leaderboard popup
   const [leaderboard, setLeaderBoard] = useState({});
-
+  const [model, setModel] = useState(null); // State for the Teachable Machine model
+  const [maxPredictions, setMaxPred] = useState(null);
+  const [playerMove, setPlayerMove] = useState(null);
 
   const joinLobby = () => {
 
@@ -70,9 +73,6 @@ const App = () => {
       
     });
 
-    
-    
-
   };
 
   
@@ -88,12 +88,6 @@ const App = () => {
     }
   };
 
- 
-  //   setGameStarted(true);
-  //   setGameWon(false);  // Ensure win state is reset when starting a new game
-  //   setPlayerData({name: playerData.name});
-  // };
-  
   const handlePlayerWin = (name, timeTaken, jumpsTaken) => {
     console.log('Player ' + name + ' won.');
     const winnerData = { name, timeTaken, jumpsTaken };
@@ -116,7 +110,53 @@ const App = () => {
   };
 
   useEffect(() => {
+
+    // Loading model hypotetically
+    async function loadTMModel() {
+      const URL = 'game_model/model.json'; // Replace 'your_model_url' with your actual model URL
+      const metadataURL = 'game_model/metadata.json';
+      const model = await tmPose.load(URL, metadataURL);
+      setMaxPred(model.getTotalClasses());
+      setModel(model);
+
+      //camera list setup function here
+    }
+
+    loadTMModel();
+
+    return () => {
+      // Cleanup code
+    };
+  }, []);
+
+  // Function to predict poses using the loaded model
+  const predictPoses = async () => {
+    if (model) {
+      // NO CAMERA SETUP YET 
+      // Get a prediction from the model (videoElement (camera) should be used in place of someImageData)
+      const { pose, posenetOutput } = await model.estimatePose(someImageData); // Pass your image data here
+      let prediction = await model.predict(posenetOutput); //a dictionary/OBJECT
+
+      // Swapping probability because of camera flip
+      let tmp = prediction[3].probability;
+      prediction[3].probability = prediction[4].probability;
+      prediction[4].probability = tmp;
+
+      // Sort predictions by probability in descending order
+      prediction.sort((a, b) => b.probability - a.probability); 
+
+      // send prediction[0].className to PixiGame ---> Player
+      setPlayerMove(prediction[0].className);
+
+    }
+  };
+
+
+
+  useEffect(() => {
     if (socket) {
+
+
 
       socket.on('gameWon', (winnerData) => {
      
@@ -128,12 +168,6 @@ const App = () => {
         console.log('gameStarted ' + gameStarted);
       });
 
-      //   setGameWon(false);
-      //   setInLobby(true);
-      //   setWinnerData(null);
-      //   setPlayerData({});
-      //   //setCountdown(15);  // Reset for next game
-      // });
       socket.on('lobbyUpdate', data => {
         setLobbyCount(data.count);
         setPlayersInLobby(data.players);
@@ -221,7 +255,7 @@ const App = () => {
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : (
-        <PixiGame onPlayerWin={handlePlayerWin} startGame={gameStarted} playerName={playerData.name} />
+        <PixiGame onPlayerWin={handlePlayerWin} startGame={gameStarted} playerName={playerData.name} playerMove={playerMove}/>
       )}
     </div>
   );

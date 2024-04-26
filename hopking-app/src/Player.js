@@ -48,6 +48,7 @@ export default class Player {
   }
 
   setupControls() {
+    //replace key listeners with camera-feed/model-output listener?
     this.controls.registerKey('a', (isDown) => {
       this.movingLeft = isDown;
       if (isDown) this.lastDirection = -1;

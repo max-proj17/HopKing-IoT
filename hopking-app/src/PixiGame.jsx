@@ -5,7 +5,7 @@ import Player from './Player';
 import Controls from './Controls'; 
 import Platform from './Platform'; 
 
-const PixiGame = ({ onPlayerWin, startGame, playerName }) => {
+const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
   const gameContainerRef = useRef(null);
 
   useEffect(() => {
