@@ -4,6 +4,9 @@ import PixiGame from './PixiGame';
 import io from 'socket.io-client';
 import * as tmPose from '@teachablemachine/pose'; // Import Teachable Machine modules
 
+//const serverURL = 'http://10.8.17.20:3000'; // Max's Laptop
+const serverURL = 'http://10.8.17.12:3000'; // Sam's Laptop
+
 
 const App = () => {
   const [socket, setSocket] = useState(null);
@@ -17,21 +20,25 @@ const App = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(false); // State to control the visibility of the leaderboard popup
   const [leaderboard, setLeaderBoard] = useState({});
   const [model, setModel] = useState(null); // State for the Teachable Machine model
-  const [maxPredictions, setMaxPred] = useState(null);
+  //const [maxPredictions, setMaxPred] = useState(null);
   const [playerMove, setPlayerMove] = useState(null);
+  const [cameraOptions, setCameraOptions] = useState([]);
+  const [camera, setCamera] = useState(null);
+
+  //let webcam;
 
   const joinLobby = () => {
 
     if (!socket) {
-      const playerName = prompt("Please enter your name.\nPlease no code injections such as \"\${name}\"");
-      const newSocket = io('http://10.8.17.20:3000');  // Adjust this URL to your server's
+      const playerName = prompt("Please enter your name.\nPlease no code injections such as \"${name}\"");
+      const newSocket = io(serverURL);  // Adjust this URL to your server's
       setSocket(newSocket);
       setPlayerData({ name: playerName });  // Store the player's name in state
 
       newSocket.on('connect', () => {
         newSocket.emit('joinLobby', playerName);
 
-      }); 
+      });
 
       newSocket.on('joinRejected', (message) => {
         newSocket.disconnect();
@@ -44,7 +51,7 @@ const App = () => {
         alert(message);
         setInLobby(true);
       })
-      
+
     }
   };
 
@@ -52,7 +59,7 @@ const App = () => {
 
     console.log('in leaderboard');
     //make a socket connection to server
-    const newSocket = io('http://10.8.17.20:3000');  // Adjust this URL to your server's
+    const newSocket = io(serverURL);  // Adjust this URL to your server's
     setSocket(newSocket);
     //emit toggleLeaderBoard
     newSocket.on('connect', () => {
@@ -70,12 +77,12 @@ const App = () => {
         setSocket(null);
         console.log(leaderboard);
       }, 0);
-      
+
     });
 
   };
 
-  
+
 
   const startGameManually = () => {
     if (socket && lobbyCount > 1 && !gameStarted) {  // Ensure there is at least 1 player
@@ -93,7 +100,7 @@ const App = () => {
     const winnerData = { name, timeTaken, jumpsTaken };
     console.log('emitting playerWin');
     socket.emit('playerWin', winnerData);
-    
+
   };
 
   const backToStart = () => {
@@ -106,44 +113,80 @@ const App = () => {
       socket.disconnect();
       setSocket(null);
     }
-    
   };
 
-  useEffect(() => {
+  //sets up an individual camera
+  const setupCamera = async (cameraId) => {
+    try {
+      const size = 200;
+      const flip = true;
+      setCamera(new tmPose.Webcam(size, size, flip, cameraId));
+      await camera.setup();
+      await camera.play();
 
-    // Loading model hypotetically
-    async function loadTMModel() {
-      const URL = 'game_model/model.json'; // Replace 'your_model_url' with your actual model URL
-      const metadataURL = 'game_model/metadata.json';
-      const model = await tmPose.load(URL, metadataURL);
-      setMaxPred(model.getTotalClasses());
-      setModel(model);
+      const loop = async () => {
+        if (camera) {
+          camera.update(); // Update the camera frame
+          await predictPoses(); // Function to process poses using the model
+          window.requestAnimationFrame(loop);
+        }
+      };
 
-      //camera list setup function here
+      window.requestAnimationFrame(loop);
+    } catch (error) {
+      console.error('Camera setup failed:', error);
     }
+  };
+
+  // Fetch camera options on mount
+  useEffect(() => {
+    navigator.mediaDevices.enumerateDevices()
+      .then((devices) => {
+        const videoInputs = devices.filter(device => device.kind === 'videoinput');
+        const options = videoInputs.map((device, index) => ({
+          value: device.deviceId,
+          label: device.label || `Camera ${index + 1}`
+        }));
+        setCameraOptions(options);
+      })
+      .catch(err => {
+        console.error('Failed to enumerate devices:', err);
+      });
+  }, []);
+
+  useEffect(() => {
+    const loadTMModel = async () => {
+      const URL = 'game_model/model.json';
+      const metadataURL = 'game_model/metadata.json';
+      try {
+        const model = await tmPose.load(URL, metadataURL);
+        setMaxPred(model.getTotalClasses());
+        setModel(model);
+      } catch (error) {
+        console.error('Failed to load model:', error);
+      }
+    };
 
     loadTMModel();
-
-    return () => {
-      // Cleanup code
-    };
   }, []);
+
+
 
   // Function to predict poses using the loaded model
   const predictPoses = async () => {
     if (model) {
-      // NO CAMERA SETUP YET 
+      // NO CAMERA SETUP YET
       // Get a prediction from the model (videoElement (camera) should be used in place of someImageData)
-      const { pose, posenetOutput } = await model.estimatePose(someImageData); // Pass your image data here
+      const { pose, posenetOutput } = await model.estimatePose(webcam.canvas); // Pass your image data here
       let prediction = await model.predict(posenetOutput); //a dictionary/OBJECT
 
       // Swapping probability because of camera flip
-      let tmp = prediction[3].probability;
-      prediction[3].probability = prediction[4].probability;
-      prediction[4].probability = tmp;
+      // let tmp = prediction[3].probability;
+      // prediction[3].probability = prediction[4].probability;
+      // prediction[4].probability = tmp;
 
       // Sort predictions by probability in descending order
-      prediction.sort((a, b) => b.probability - a.probability); 
+      prediction.sort((a, b) => b.probability - a.probability);
 
       // send prediction[0].className to PixiGame ---> Player
       setPlayerMove(prediction[0].className);
@@ -151,15 +194,11 @@ const App = () => {
     }
   };
 
-
-
   useEffect(() => {
     if (socket) {
 
-
-
       socket.on('gameWon', (winnerData) => {
-     
+
         console.log('received gameWon from ' + winnerData.name);
         setWinnerData(winnerData);
         setGameWon(true);       // Show win screen
@@ -191,7 +230,7 @@ const App = () => {
       {
         setLeaderBoard(leaderboard);
       });
-     
+
       return () => {
         socket.off('lobbyUpdate');
         socket.off('startGame');
@@ -239,22 +278,36 @@ const App = () => {
             </div>
           )}
         </div>
-        
+
       ) : inLobby ? (
         <div>
+          {/* add camera dropdown here */}
           <h2>Waiting Room</h2>
           <p>Players in lobby: {lobbyCount}</p>
           {playersInLobby.map(player => <p key={player}>{player}</p>)}
-          {lobbyCount > 1 && <button className="start-button" onClick={startGameManually}>Start Game</button>}         
-          <button className="start-button" onClick={backToStart}>Back to Start</button>
+          {lobbyCount > 1 && <button className="start-button" onClick={startGameManually}>Start Game</button>}
+          <button className="start-button" onClick={backToStart}>Back to Start</button><br></br>
+
+          <label htmlFor="cameraList">Select Camera:</label>
+          <select id="cameraList" onChange={(e) => setupCamera(e.target.value)}>
+            {cameraOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+
+          <button className="startCamera" onClick="startCamera();" >Start Selected Camera</button>
+          <video id="videoElement" width="200" height="200" autoPlay playsInline style={{ display: "none" }}></video>
+          <canvas id="canvas" width="200" height="200"></canvas>
+
         </div>
       ) : gameWon ? (
         <div className="win-screen">
           <p>Player {winnerData.name} won! Time Taken: {winnerData.timeTaken} seconds with {winnerData.jumpsTaken} jumps.</p>
-      
+
           <button className="start-button" onClick={backToStart}>Back to Start</button>
         </div>
       ) : (
+        /* Show camera feed in small window */
         <PixiGame onPlayerWin={handlePlayerWin} startGame={gameStarted} playerName={playerData.name} playerMove={playerMove}/>
       )}
     </div>

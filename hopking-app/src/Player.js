@@ -1,4 +1,5 @@
 // Player.js
+import { Webcam } from '@teachablemachine/pose';
 import * as PIXI from 'pixi.js';
 
 export default class Player {
@@ -13,7 +14,7 @@ export default class Player {
     this.timeStarted = Date.now();
     this.timeTaken = 0;
     this.jumpsTaken = 0;
-  
+
 
     this.originalHeight = 50;
     this.width = 50; // Assuming the player is a square
@@ -25,14 +26,15 @@ export default class Player {
     this.lastDirection = 0; // 0 for stationary, -1 for left, 1 for right
     this.onPlayerWin = onPlayerWin; // Callback when the player wins
 
-    //Jump Meter 
+    //Jump Meter
     this.jumpMeter = null;
     this.onPlatform = false;
     this.jumpMeterValue = 0; // Range from 0 to 1
     this.jumpMeterIncreasing = true;
 
     this.createPlayer();
-    this.setupControls();
+    //this.setupControls(); // replaced with listenControls()
+    this.listenControls();
     this.createJumpMeter();
   }
 
@@ -43,7 +45,7 @@ export default class Player {
     this.player.endFill();
     this.player.x = this.app.screen.width / 2 - 25; // Center the player
     this.player.y = this.app.screen.height - 100; // Position above the bottom
-    
+
     this.app.stage.addChild(this.player);
   }
 
@@ -51,10 +53,13 @@ export default class Player {
   // And run 'listenControls' before everything else happens
 
   // Controls.js probably wont be needed as it just sets up the event listeners for the WASD keys
-  // this.controls is justan instance of the Controls object (see PixiGame.js)
+  // this.controls is just an instance of the Controls object (see PixiGame.js)
 
-  setupControls() {
+//  setupControls() {
+  listenControls(playerMove) {
     //replace key listeners with camera-feed/model-output listener?
+    console.log(playerMove);
+    /*
     this.controls.registerKey('a', (isDown) => {
       this.movingLeft = isDown;
       if (isDown) this.lastDirection = -1;
@@ -76,9 +81,10 @@ export default class Player {
           }
         }
       });
+    */
   }
 
-  
+
   createJumpMeter() {
     this.jumpMeter = new PIXI.Graphics();
     this.jumpMeter.beginFill(0xFF0000); // Red for visibility
@@ -145,14 +151,14 @@ export default class Player {
   // Pass playerMove into update(delta, playerMove) in Player.js and PixiGame.js
   // Before updateJumpMeter, run 'listenControls(playerMove)
 
-  update(delta) {
-  
-    // listenControls(playerMove);
+  update(delta, playerMove) {
+
+    this.listenControls(playerMove);
     this.updateJumpMeter(delta);
     this.player.x += this.horizontalSpeed * delta; // Update position horizontally
     if (this.player.x < 0) this.player.x = 0;
     if (this.player.x + this.player.width  > this.app.screen.width) this.player.x = this.app.screen.width - this.player.width; 
-    
+
     if (this.jumpMeter.visible) {
       // Do not allow horizontal movement when the jump meter is visible
       this.horizontalSpeed = 0;
@@ -174,8 +180,8 @@ export default class Player {
         this.player.y = 0;
         this.verticalSpeed = 0;
       }
-    } 
-    
+    }
+
     // Prevent falling through the floor
     if (this.player.y > this.app.screen.height - this.originalHeight) {
       //console.log(this.player.y, this.app.screen.height, this.originalHeight);
@@ -199,7 +205,7 @@ export default class Player {
       }
     }
     //console.log(this.onPlatform);
-    if ( 
+    if (
       this.player.y + this.player.height <= this.platforms[0].graphics.y &&
       this.player.x + this.width >= this.platforms[0].graphics.x && // player's right edge is on or past the platform's left edge
       this.player.x <= this.platforms[0].graphics.x + this.platforms[0].width) { // player's left edge is on or before the platform's right edge
@@ -232,9 +238,9 @@ export default class Player {
       };
       this.rectCollision(pB, plb, i);
       i++;
-        
+
     });
-    
+
     //console.log(onPlatform);
     //return onPlatform;
   }
@@ -246,24 +252,24 @@ export default class Player {
     if (i == 9)
     {
       //console.log('Box bottom: ', a.y + a.height, 'platform top:', b.y)
-    }                  
-    
+    }
+
     if (collision) {
 
         // Top of a is touching bottom of b
-        //a.x + a.width >= b.x && 
+        //a.x + a.width >= b.x &&
         //a.x <= b.x + b.width
-        
+
         if (a.y + a.height > b.y &&  a.y + a.height <= b.y + 10 && a.x + a.width > b.x && a.x < b.x + b.width) {  //&& a.y <= b.y
             //console.log("Top of platform is touching bottom of square");
-            
+
             this.player.y = b.y - a.height;
             this.horizontalSpeed = 0;
             this.onPlatform = true;
             this.isJumping = false;
             this.verticalSpeed = 0;
             // Only set onPlatform to true if not already on a platform to prevent flipping
-            
+
         }
 
         // Bottom of a is touching top of b
@@ -279,7 +285,7 @@ export default class Player {
             //console.log("Left of platform is touching right of square");
             // this.player.x = b.x - a.width; // Adjust player to the left side of the platform
             // this.horizontalSpeed = 0; // Stop horizontal movement
-            
+
         }
 
         // Right of a is touching left of b
