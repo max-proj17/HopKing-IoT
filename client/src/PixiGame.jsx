@@ -1,12 +1,14 @@
 // PixiGame.jsx
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import * as PIXI from 'pixi.js';
 import Player from './Player'; 
 import Controls from './Controls'; 
 import Platform from './Platform'; 
 
-const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
+const PixiGame = memo(({ onPlayerWin, startGame, playerName, model, camera, videoRef }) => {
   const gameContainerRef = useRef(null);
+  const appRef = useRef(null); // Ref to keep track of PIXI app
+  const playerRef = useRef(null);
 
   useEffect(() => {
     if (!startGame) return;
@@ -16,17 +18,22 @@ const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
       height: 800,
       backgroundColor: 0x000000,
     });
-
+    appRef.current = app;
     gameContainerRef.current.appendChild(app.view);
     // These are event listeners for the keyboard keys (not needed)
     const controls = new Controls();
     const platforms = generatePlatforms(app);
-    console.log(playerName);
-    const player = new Player(app, controls, platforms, onPlayerWin, playerName); // Pass controls to player
+    //console.log(playerName);
+    const player = new Player(app, controls, platforms, onPlayerWin, 
+      playerName, camera, model, videoRef); // Pass controls to player
+    playerRef.current = player;
+    console.log('Starting game');
 
     // updates player movements, jump bar, etc (ADD playerMove here)
-    app.ticker.add((delta, playerMove) => {
-      player.update(delta, playerMove);
+    app.ticker.add((delta) => {
+      if(playerRef.current){
+        playerRef.current.update(delta);
+      }
     });
 
     return () => {
@@ -36,7 +43,16 @@ const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
       app.destroy(true);
       controls.destroy(); // Ensure controls are also cleaned up
     };
-  }, [onPlayerWin, playerName]);
+
+  }, [startGame, onPlayerWin, playerName]);
+
+  // useEffect(() => {
+  //   // This effect handles playerMove updates without reinitializing PIXI
+  //   if (playerRef.current) {
+  //     playerRef.current.listenControls(playerMove.current);
+  //   }
+  // }, [playerMove]); // Dependency on playerMove only
+
  
   // Function to generate platforms
   function generatePlatforms(app) {
@@ -74,7 +90,7 @@ const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
   
 
   return <div ref={gameContainerRef} />;
-};
+});
 
 
 export default PixiGame;
