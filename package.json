@@ -1,0 +1,11 @@
+{
+    "scripts": {
+        "start": "node server/server.js",
+        "build": "cd client && vite build",
+        "dev": "concurrently \"cd client && vite\" \" node server/server.js\""
+    },
+    "dependencies": {
+        "concurrently": "^7.0.0",
+        "express": "^4.19.2"
+    }
+}
