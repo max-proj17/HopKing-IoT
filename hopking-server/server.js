@@ -25,13 +25,13 @@ admin.initializeApp({
 const db = admin.database();
 
 
-// Server will:  
+// Server will:
 // - Fetch top 10 playerData from Firebase and put into
-//   a dictionary (Or some similar structure) 
+//   a dictionary (Or some similar structure)
 // - Send the dictionary to the Client to display
 //
 // On playerWin -  use winnerData.name to fetch from database. Compare and log perfMetric (), jumps, time to firebase
-// ONLY IF it is greater than their previous HS. 
+// ONLY IF it is greater than their previous HS.
 //
 
 
@@ -58,7 +58,7 @@ async function updateLeaderboard(){
         ...childSnapshot.val() // Spread the values to include all child data
       });
     });
-    
+
 
     // Reverse to make it descending order for scores
     //scores.reverse();
@@ -67,22 +67,22 @@ async function updateLeaderboard(){
 
     // Sort the scores in descending order
     scores.sort((a, b) => b.score - a.score);
-  
+
     //console.log('Sorted scores is: ' + scores[0]['userId'] + ' ' + scores[0]['score']);
 
     // Populate the leaderboard object
     scores.forEach((score, index) => {
       if (index < 10) { // Limit to top 10
         leaderboard[rankingNames[index]] = [
-          score['userId'], 
+          score['userId'],
           score['score'].toFixed(2), // Formatting the score to two decimal places
           score['timeTaken'].toFixed(3), // Formatting the time to three decimal places
-          score['jumpsTaken'], 
+          score['jumpsTaken'],
           score['wins']
         ];
       }
     });
- 
+
   // console.log(JSON.stringify(leaderboard));
   // console.log('Sorted Leaderboard: ' + leaderboard['first'][0] + ' ' + leaderboard['first'][1]);
 }
@@ -92,7 +92,7 @@ function updateScore(userId, time, jumps)
 {
 
   const score = 4000 * (2.71828 **( -0.03 * time )) / (0.22 * jumps + 1);
-  
+
   // Reference to the user's score
   const userScoreRef = db.ref('scores/' + userId);
 
@@ -103,7 +103,7 @@ function updateScore(userId, time, jumps)
       // const wins = currentData && currentData.wins ? currentData.wins + 1 : 1;
       return { score: score, timeTaken: time, jumpsTaken: jumps, timestamp: Date.now(), wins: wins };
     } else {
-      return { score: currentData.score, timeTaken: currentData.timeTaken, 
+      return { score: currentData.score, timeTaken: currentData.timeTaken,
         jumpsTaken: currentData.jumpsTaken, timestamp: currentData.timestamp, wins: wins }; // Abort the transaction if the new score isn't higher
     }
   }, (error, committed, snapshot) => {
@@ -116,7 +116,7 @@ function updateScore(userId, time, jumps)
       console.log(`New high score for user ${userId}: ${newScore}`);
     }
   });
- 
+
 }
 
 updateLeaderboard();
@@ -143,7 +143,7 @@ io.on('connection', (socket) => {
     console.log('emitting gameWon');
     io.emit('gameWon', winnerData);
     waitingPlayers = [];
-    gameIsActive = false; 
+    gameIsActive = false;
     console.log('Winner: ' + winnerData.name + ' Time Taken: ' + winnerData.timeTaken + ' Jumps Taken: ' + winnerData.jumpsTaken);
 
     updateScore(winnerData.name, winnerData.timeTaken, winnerData.jumpsTaken);
@@ -166,7 +166,7 @@ io.on('connection', (socket) => {
       io.emit('lobbyUpdate', { count: waitingPlayers.length, players: waitingPlayers.map(p => p.name) });
     }
   });
-  
+
 
   socket.on('startGameManually', () => {
     console.log('startGameManually is CALLED');

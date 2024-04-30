@@ -23,10 +23,10 @@ const PixiGame = ({ onPlayerWin, startGame, playerName, playerMove }) => {
     const platforms = generatePlatforms(app);
     console.log(playerName);
     const player = new Player(app, controls, platforms, onPlayerWin, playerName); // Pass controls to player
-    
+
     // updates player movements, jump bar, etc (ADD playerMove here)
-    app.ticker.add((delta) => {
-      player.update(delta);
+    app.ticker.add((delta, playerMove) => {
+      player.update(delta, playerMove);
     });
 
     return () => {
