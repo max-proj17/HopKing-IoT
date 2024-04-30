@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import PixiGame from './PixiGame';
 import io from 'socket.io-client';
-import * as tmPose from '@teachablemachine/pose'; // Import Teachable Machine modules
+// import * as tf from '@tensorflow/tfjs';
+// import * as tmPose from '@teachablemachine/pose';  // Ensure this import is correct
 
-//const serverURL = 'http://10.8.17.20:3000'; // Max's Laptop
+// At the top of a React component or a JavaScript module
+
+const tmPose = window.tmPose;
+let previous = null;
+const serverURL = 'http://10.8.17.26:3000'; // Max's Laptop
+//const serverURL = 'http://192.168.0.182:3000'; //Max's Laptop 2
 //const serverURL = 'http://10.8.17.12:3000'; // Sam's Laptop
-const serverURL = 'http://172.17.47.107:3000/'; // Sam's Laptop, but in the SC
-
+//const serverURL = 'http://172.17.47.107:3000/'; // Sam's Laptop, but in the SC
+//const serverURL = 'http://localhost:3000';
 const App = () => {
   const [socket, setSocket] = useState(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -25,6 +31,8 @@ const App = () => {
   const [cameraOptions, setCameraOptions] = useState([]);
   const [camera, setCamera] = useState(null);
   const [selectedCameraId, setSelectedCameraId] = useState('');
+  const videoRef = useRef(null);
+  //const playerMoveRef = useRef(null);
 
   //let webcam;
 
@@ -116,6 +124,7 @@ const App = () => {
 
   //sets up an individual camera
   const setupCamera = async () => {
+    console.log('Selected Camera ID:', selectedCameraId);
     if (!selectedCameraId) {
         console.error('No camera selected.');
         return;
@@ -130,12 +139,11 @@ const App = () => {
         };
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        const videoElement = document.getElementById('videoElement');
-        if (videoElement) {
-            videoElement.srcObject = stream;
-            await videoElement.play().catch(err => {
-                console.error('Error auto-playing video:', err);
-            });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(err => {
+            console.error('Error auto-playing video:', err);
+          });
         }
 
         // Optional: Set state if stream needs to be accessible elsewhere
@@ -163,12 +171,22 @@ useEffect(() => {
                 label: device.label || `Camera ${index + 1}`
             }));
             setCameraOptions(options);
+            if (options.length > 0) {
+              setSelectedCameraId(options[0].value);  // Auto-select the first camera
+            }
         } catch (err) {
             console.error('Failed to load camera options:', err);
         }
     };
 
-    fetchCameraOptions();
+    // Get permission to access camera and microphone first
+    navigator.mediaDevices.getUserMedia({ video: true})
+      .then(() => {
+        fetchCameraOptions();  // Fetch cameras only after permissions are granted
+      })
+      .catch(err => {
+        console.error('Access denied for camera: ', err);
+      });
 }, []);
 
 
@@ -196,25 +214,35 @@ useEffect(() => {
 
   // Function to predict poses using the loaded model
   const predictPoses = async () => {
-    if (model) {
-      // NO CAMERA SETUP YET
-      // Get a prediction from the model (videoElement (camera) should be used in place of someImageData)
-      const { pose, posenetOutput } = await model.estimatePose(camera.canvas); // Pass your image data here
-      let prediction = await model.predict(posenetOutput); //a dictionary/OBJECT
+    //console.log(model!=null && camera!=null);
+    if (model!=null && camera!=null) {
+      //console.log(model);
+      try {
+        const videoElement = videoRef.current;
+        //console.log(videoElement.readyState);
+        if (videoElement && videoElement.readyState === 4) { // Ensures the video is ready to capture frames
+          const { pose, posenetOutput } = await model.estimatePose(videoElement); // Using videoElement directly
+          const prediction = await model.predict(posenetOutput);
+  
+          prediction.sort((a, b) => b.probability - a.probability);
+          //console.log('Predictions', prediction[0], ' ', prediction[1], ' ', prediction[2], ' ', prediction[3]);
+          
+          return prediction[0].className;
+          // if(prediction[0].className!= undefined)
+          // {
+          //   console.log(prediction[0].className);
+          // }
+          
 
-      // Swapping probability because of camera flip
-      // let tmp = prediction[3].probability;
-      // prediction[3].probability = prediction[4].probability;
-      // prediction[4].probability = tmp;
-
-      // Sort predictions by probability in descending order
-      prediction.sort((a, b) => b.probability - a.probability);
-
-      // send prediction[0].className to PixiGame ---> Player
-      setPlayerMove(prediction[0].className);
-
+        }
+      } catch (error) {
+        console.error('Error in predicting poses:', error);
+        return null;
+      }
+      return null;
     }
   };
+  
 
   useEffect(() => {
     if (socket) {
@@ -266,6 +294,7 @@ useEffect(() => {
 
   return (
     <div className="app-container">
+      <video ref={videoRef} width="200" height="200" autoPlay playsInline style={{ display: gameStarted ? "block" : "none" }}></video>
       {!gameStarted && !gameWon && !inLobby ? (
         <div>
           <h1>Welcome to HopKing</h1>
@@ -318,7 +347,7 @@ useEffect(() => {
           </select>
 
           <button className="startCamera" onClick={setupCamera} >Start Selected Camera</button>
-          <video id="videoElement" width="200" height="200" autoPlay playsInline style={{ display: "block" }}></video>
+          
           <canvas id="canvas" width="200" height="200"></canvas>
 
         </div>
@@ -330,7 +359,8 @@ useEffect(() => {
         </div>
       ) : (
         /* Show camera feed in small window */
-        <PixiGame onPlayerWin={handlePlayerWin} startGame={gameStarted} playerName={playerData.name} playerMove={playerMove}/>
+        <PixiGame onPlayerWin={handlePlayerWin} startGame={gameStarted} playerName={playerData.name} model={model} camera={camera} videoRef={videoRef}/>
+        
       )}
     </div>
   );

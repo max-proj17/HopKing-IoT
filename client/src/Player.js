@@ -1,9 +1,9 @@
 // Player.js
-import { Webcam } from '@teachablemachine/pose';
+//import { Webcam } from '@teachablemachine/pose';
 import * as PIXI from 'pixi.js';
 
 export default class Player {
-  constructor(app, controls, platforms = [], onPlayerWin, name = "Player") {
+  constructor(app, controls, platforms = [], onPlayerWin, name = "Player", camera, model, videoRef) {
     this.app = app;
     this.controls = controls;
     this.platforms = platforms;
@@ -32,9 +32,17 @@ export default class Player {
     this.jumpMeterValue = 0; // Range from 0 to 1
     this.jumpMeterIncreasing = true;
 
+    this.camera = camera;
+    this.model = model;
+    this.videoRef = videoRef;
+
+    this.movingRight = false;
+    this.movingLeft = false;
+
     this.createPlayer();
     //this.setupControls(); // replaced with listenControls()
-    this.listenControls();
+    //this.listenControls();
+    this.initPosePrediction();
     this.createJumpMeter();
   }
 
@@ -56,33 +64,115 @@ export default class Player {
   // this.controls is just an instance of the Controls object (see PixiGame.js)
 
 //  setupControls() {
-  listenControls(playerMove) {
-    //replace key listeners with camera-feed/model-output listener?
-    console.log(playerMove);
-    /*
-    this.controls.registerKey('a', (isDown) => {
-      this.movingLeft = isDown;
-      if (isDown) this.lastDirection = -1;
-    });
+  // listenControls(playerMove) {
+  //   //replace key listeners with camera-feed/model-output listener?
+  //   console.log(playerMove);
+  //   /*
+  //   this.controls.registerKey('a', (isDown) => {
+  //     this.movingLeft = isDown;
+  //     if (isDown) this.lastDirection = -1;
+  //   });
 
-    this.controls.registerKey('d', (isDown) => {
-      this.movingRight = isDown;
-      if (isDown) this.lastDirection = 1;
-    });
+  //   this.controls.registerKey('d', (isDown) => {
+  //     this.movingRight = isDown;
+  //     if (isDown) this.lastDirection = 1;
+  //   });
 
-    this.controls.registerKey(' ', (isDown) => {
-        if (isDown && !this.isJumping) {
-          if (!this.isSquishing) {
-            this.squish();
-            this.showJumpMeter();
-          } else {
-            this.jump();
-            this.hideJumpMeter();
-          }
+  //   this.controls.registerKey(' ', (isDown) => {
+  //       if (isDown && !this.isJumping) {
+  //         if (!this.isSquishing) {
+  //           this.squish();
+  //           this.showJumpMeter();
+  //         } else {
+  //           this.jump();
+  //           this.hideJumpMeter();
+  //         }
+  //       }
+  //     });
+  //   */
+  // }
+
+  async initPosePrediction() {
+    try {
+        // Regular interval to check poses without blocking the main game loop
+        setInterval(async () => {
+            await this.predictMove();
+        }, 1000); // Adjust interval as needed for game balance
+    } catch (error) {
+        console.error('Error initializing pose prediction:', error);
+    }
+  }  
+  // Function to predict poses using the loaded model
+  async predictMove(){
+  //console.log(this.model!=null && this.camera!=null);
+  
+  if (this.model!=null && this.camera!=null) {
+    //console.log(model);
+    try {
+      const videoElement = this.videoRef.current;
+      //console.log(videoElement.readyState);
+      if (videoElement && videoElement.readyState === 4) { // Ensures the video is ready to capture frames
+        const { pose, posenetOutput } = await this.model.estimatePose(videoElement); // Using videoElement directly
+        const prediction = await this.model.predict(posenetOutput);
+
+        prediction.sort((a, b) => b.probability - a.probability);
+        //console.log('Predictions', prediction[0], ' ', prediction[1], ' ', prediction[2], ' ', prediction[3]);
+        
+        // Assuming predictions[0].className holds the result from your model
+        const action = prediction[0].className;
+
+        switch (action) {
+            case "Stand":
+                // Code for when the model predicts "Stand"
+                console.log("Standing still");
+                this.movingRight = false;
+                this.movingLeft = false;
+                break;
+            case "Squat":
+                // Code for when the model predicts "Squat"
+                
+                if (!this.isJumping) {
+                  console.log("Squatting");
+                  this.squish();
+                  this.showJumpMeter();
+                }
+                break;
+            case "Jump":
+                // Code for when the model predicts "Jump"
+                
+                if (!this.isJumping) {
+                  console.log("Jumping");
+                  this.jump();
+                  this.hideJumpMeter();
+                }
+                break;
+            case "walk right":
+                // Code for when the model predicts "Walk Right"
+                console.log("Walking left");
+                this.movingLeft = true;
+                
+                this.lastDirection = -1;
+                break;
+            case "Walk Left":
+                // Code for when the model predicts "Walk Left"
+                console.log("Walking right");
+                this.movingRight = true;
+                
+                this.lastDirection = 1;
+                break;
+            default:
+                // Code for any other or unrecognized predictions
+                console.log("Unknown action");
+                break;
         }
-      });
-    */
+      }
+    } catch (error) {
+      console.error('Error in predicting poses:', error);
+      return null;
+    }
+    return null;
   }
+};
 
 
   createJumpMeter() {
@@ -151,9 +241,8 @@ export default class Player {
   // Pass playerMove into update(delta, playerMove) in Player.js and PixiGame.js
   // Before updateJumpMeter, run 'listenControls(playerMove)
 
-  update(delta, playerMove) {
+  update(delta) {
 
-    this.listenControls(playerMove);
     this.updateJumpMeter(delta);
     this.player.x += this.horizontalSpeed * delta; // Update position horizontally
     if (this.player.x < 0) this.player.x = 0;
