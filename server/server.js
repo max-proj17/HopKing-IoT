@@ -13,6 +13,9 @@ const io = socketIo(server, {
   }
 });
 
+const cors = require('cors');
+app.use(cors());
+
 // Initialize Firebase Admin
 var serviceAccount = require('./iot-game-4d3b5-firebase-adminsdk-qfepa-f088df8ef5.json');
 const { threadId } = require('worker_threads');

@@ -5,8 +5,8 @@ import io from 'socket.io-client';
 import * as tmPose from '@teachablemachine/pose'; // Import Teachable Machine modules
 
 //const serverURL = 'http://10.8.17.20:3000'; // Max's Laptop
-const serverURL = 'http://10.8.17.12:3000'; // Sam's Laptop
-
+//const serverURL = 'http://10.8.17.12:3000'; // Sam's Laptop
+const serverURL = 'http://172.17.47.107:3000/'; // Sam's Laptop, but in the SC
 
 const App = () => {
   const [socket, setSocket] = useState(null);
@@ -20,10 +20,11 @@ const App = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(false); // State to control the visibility of the leaderboard popup
   const [leaderboard, setLeaderBoard] = useState({});
   const [model, setModel] = useState(null); // State for the Teachable Machine model
-  //const [maxPredictions, setMaxPred] = useState(null);
+  const [maxPredictions, setMaxPred] = useState(null);
   const [playerMove, setPlayerMove] = useState(null);
   const [cameraOptions, setCameraOptions] = useState([]);
   const [camera, setCamera] = useState(null);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
 
   //let webcam;
 
@@ -82,8 +83,6 @@ const App = () => {
 
   };
 
-
-
   const startGameManually = () => {
     if (socket && lobbyCount > 1 && !gameStarted) {  // Ensure there is at least 1 player
       console.log('CALLING SERVER TO START');
@@ -116,46 +115,65 @@ const App = () => {
   };
 
   //sets up an individual camera
-  const setupCamera = async (cameraId) => {
-    try {
-      const size = 200;
-      const flip = true;
-      setCamera(new tmPose.Webcam(size, size, flip, cameraId));
-      await camera.setup();
-      await camera.play();
-
-      const loop = async () => {
-        if (camera) {
-          camera.update(); // Update the camera frame
-          await predictPoses(); // Function to process poses using the model
-          window.requestAnimationFrame(loop);
-        }
-      };
-
-      window.requestAnimationFrame(loop);
-    } catch (error) {
-      console.error('Camera setup failed:', error);
+  const setupCamera = async () => {
+    if (!selectedCameraId) {
+        console.error('No camera selected.');
+        return;
     }
-  };
+    try {
+        const constraints = {
+            video: {
+                deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined,
+                width: { ideal: 200 },  // Ideal video width
+                height: { ideal: 200 }  // Ideal video height
+            }
+        };
 
-  // Fetch camera options on mount
-  useEffect(() => {
-    navigator.mediaDevices.enumerateDevices()
-      .then((devices) => {
-        const videoInputs = devices.filter(device => device.kind === 'videoinput');
-        const options = videoInputs.map((device, index) => ({
-          value: device.deviceId,
-          label: device.label || `Camera ${index + 1}`
-        }));
-        setCameraOptions(options);
-      })
-      .catch(err => {
-        console.error('Failed to enumerate devices:', err);
-      });
-  }, []);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const videoElement = document.getElementById('videoElement');
+        if (videoElement) {
+            videoElement.srcObject = stream;
+            await videoElement.play().catch(err => {
+                console.error('Error auto-playing video:', err);
+            });
+        }
+
+        // Optional: Set state if stream needs to be accessible elsewhere
+        setCamera(stream);
+
+        const loop = async () => {
+            // Placeholder for any animation frame updates
+            window.requestAnimationFrame(loop);
+        };
+
+        window.requestAnimationFrame(loop);
+    } catch (error) {
+        console.error('Camera setup failed:', error);
+    }
+};
+
+// Fetch camera options on mount
+useEffect(() => {
+    const fetchCameraOptions = async () => {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoInputs = devices.filter(device => device.kind === 'videoinput');
+            const options = videoInputs.map((device, index) => ({
+                value: device.deviceId,
+                label: device.label || `Camera ${index + 1}`
+            }));
+            setCameraOptions(options);
+        } catch (err) {
+            console.error('Failed to load camera options:', err);
+        }
+    };
+
+    fetchCameraOptions();
+}, []);
+
 
   useEffect(() => {
-    const loadTMModel = async () => {
+    async function loadTMModel() {
       const URL = 'game_model/model.json';
       const metadataURL = 'game_model/metadata.json';
       try {
@@ -165,9 +183,13 @@ const App = () => {
       } catch (error) {
         console.error('Failed to load model:', error);
       }
-    };
+    }
 
     loadTMModel();
+
+    return () => {
+      // Cleanup code
+    };
   }, []);
 
 
@@ -177,7 +199,7 @@ const App = () => {
     if (model) {
       // NO CAMERA SETUP YET
       // Get a prediction from the model (videoElement (camera) should be used in place of someImageData)
-      const { pose, posenetOutput } = await model.estimatePose(webcam.canvas); // Pass your image data here
+      const { pose, posenetOutput } = await model.estimatePose(camera.canvas); // Pass your image data here
       let prediction = await model.predict(posenetOutput); //a dictionary/OBJECT
 
       // Swapping probability because of camera flip
@@ -289,14 +311,14 @@ const App = () => {
           <button className="start-button" onClick={backToStart}>Back to Start</button><br></br>
 
           <label htmlFor="cameraList">Select Camera:</label>
-          <select id="cameraList" onChange={(e) => setupCamera(e.target.value)}>
+          <select id="cameraList" value={selectedCameraId} onChange={(e) => setSelectedCameraId(e.target.value)}>
             {cameraOptions.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
 
-          <button className="startCamera" onClick="startCamera();" >Start Selected Camera</button>
-          <video id="videoElement" width="200" height="200" autoPlay playsInline style={{ display: "none" }}></video>
+          <button className="startCamera" onClick={setupCamera} >Start Selected Camera</button>
+          <video id="videoElement" width="200" height="200" autoPlay playsInline style={{ display: "block" }}></video>
           <canvas id="canvas" width="200" height="200"></canvas>
 
         </div>

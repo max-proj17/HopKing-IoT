@@ -96,14 +96,14 @@
             ctx.restore(); // Restore the context to its original state
             window.requestAnimationFrame(loop);
         }
-        
+
 
         async function predict() {
             const { pose, posenetOutput } = await model.estimatePose(videoElement);
             const prediction = await model.predict(posenetOutput);
 
             // Indices for "Walk Left" = 3 and "Walk Right" = 4
-     
+
             let j;
             for (let i = 0; i < maxPredictions; i++) {
 
