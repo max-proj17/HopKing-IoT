@@ -1,5 +1,7 @@
 # HopKing-IoT
 
+We created a 2d platformer game that uses your body poses extracted from a pose recognition model as the controls. A weebcam is needed to run the game.
+
 ## Installation Instructions
 
 Follow these steps to set up HopKing-IoT on your local machine:
